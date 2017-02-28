@@ -1,8 +1,10 @@
-const winston = require('winston');
-
+// Configure the logger.
+// This must be done before loading the other local modules that utilize winston.
 require('./src/configureLogger')({
   level: 'info',
   logPath: 'logs/log.txt',
 });
 
-winston.info('Index.js');
+const app = require('./src/app');
+
+app.run();
