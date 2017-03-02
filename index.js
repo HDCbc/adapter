@@ -1,7 +1,7 @@
 // Configure the logger.
 // This must be done before loading the other local modules that utilize winston.
 require('./src/configureLogger')({
-  level: 'info',
+  level: 'silly',
   logPath: 'logs/log.txt',
 });
 
