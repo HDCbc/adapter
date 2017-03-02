@@ -35,15 +35,17 @@ module.exports = (() => {
 
   // Retrieve the data from the source emr database.
   const getData = (thread, task, source, sourceQuery, offset, limit, callback) => {
-    winston.debug('getData()', { task, thread, query: `${sourceQuery.substring(0, 50)}...` });
+    winston.debug('getData()', { task, thread, offset, limit });
     const query = _.replace(_.replace(sourceQuery, '{limit}', limit), '{offset}', offset);
 
-    source.query({ q: query, limit, offset }, callback);
+    source.query({ q: query, limit, offset }, (err, res) => {
+      callback(err, res);
+    });
   };
 
   // Insert a chunk of data into the vault.
   const insertDataChunk = (thread, task, target, baseQuery, sourceRows, callback) => {
-    winston.debug('insertData()', { task, thread, rowCount: sourceRows.length });
+    winston.debug('insertDataChunk()', { task, thread, rowCount: sourceRows.length });
 
     const statement = buildStatement(baseQuery, sourceRows);
 
@@ -54,7 +56,7 @@ module.exports = (() => {
   };
 
   const insertData = (thread, task, target, baseQuery, sourceRows, callback) => {
-    winston.debug('storeData()', { task, thread, rowCount: sourceRows.length });
+    winston.debug('insertData()', { task, thread, rowCount: sourceRows.length });
 
     const chunkRows = _.chunk(sourceRows, INSERT_CHUNK);
 
@@ -66,28 +68,40 @@ module.exports = (() => {
   const insertBatch = (thread, task, source, sourceQuery, target, insertQuery, offset, limit, callback) => {
     winston.debug('insertBatch()', { task, thread });
     // FIXME: Be more asyncy
+    const startGet = Date.now();
     getData(thread, task, source, sourceQuery, offset, limit, (sourceErr, sourceRows) => {
       if (sourceErr) {
         return callback(sourceErr);
       }
+      const elapsedGet = Date.now() - startGet;
+      // Used by report
+      winston.silly({ task, subtask: 'received-data', thread, rows: sourceRows.length, elapsed: elapsedGet });
+
       if (sourceRows === undefined || sourceRows.length === 0) {
-        return callback(null, sourceRows);
+        return callback(null, { sourceRows: 0 });
       }
+
+      const startInsert = Date.now();
       return insertData(thread, task, target, insertQuery, sourceRows, (storeErr, storeResults) => {
-        return callback(null, { sourceRows });
+        const elapsedInsert = Date.now() - startInsert;
+        // Used by report
+        winston.silly({ task, subtask: 'inserted-data', thread, rows: -42, elapsed: elapsedInsert });
+
+        return callback(null, { sourceRows: sourceRows.length });
       });
     });
   };
 
   function taskTransferThread(thread, taskName, source, sourceQuery, target, insertQuery, startOffset, increment, limit, callback) {
     let offset = startOffset;
-    const results = [];
+    // const results = [];
     async.doWhilst(
       (cb) => {
-        insertBatch(thread, taskName, source, sourceQuery, target, insertQuery, offset, increment, cb);
+        insertBatch(thread, taskName, source, sourceQuery, target, insertQuery, offset, limit, cb);
       },
       (stats) => {
-        results.push(stats);
+        winston.debug('checkStats()', { sourceRows: stats.sourceRows, match: stats.sourceRows === limit });
+        // results.push(stats);
         offset += increment;
         return stats.sourceRows === limit;
       }, (err, res) => {
@@ -168,8 +182,8 @@ module.exports = (() => {
         entryTasks['fetch-patient-practitioner'] = ['create-patient-practitioner', async.apply(taskTransfer, 'fetch-patient-practitioner', source, val.query, target, insertQuery)];
         entryTasks['sync-patient-practitioner'] = ['fetch-patient-practitioner', 'sync-patient', async.apply(taskSync, 'sync-patient-practitioner', target, syncQuery, syncParams)];
       } else if (val.target === 'Entry') {
-        createQuery = `CREATE TABLE ${table} (emr_patient_id text, emr_id text)`;
-        insertQuery = `INSERT INTO ${table} (emr_patient_id, emr_id) VALUES `;
+        createQuery = `CREATE TABLE ${table} (emr_id text, emr_patient_id text)`;
+        insertQuery = `INSERT INTO ${table} (emr_id, emr_patient_id) VALUES `;
         syncQuery = 'SELECT * FROM etl.sync_entry($1, $2)';
         syncParams = [table, val.sourceTable];
 
@@ -177,8 +191,8 @@ module.exports = (() => {
         entryTasks[`fetch-entry-${val.entryId}`] = [`create-entry-${val.entryId}`, async.apply(taskTransfer, `fetch-entry-${val.entryId}`, source, val.query, target, insertQuery)];
         entryTasks[`sync-entry-${val.entryId}`] = [`fetch-entry-${val.entryId}`, 'sync-records', async.apply(taskSync, `sync-entry-${val.entryId}`, target, syncQuery, syncParams)];
       } else if (val.target === 'EntryAttribute') {
-        createQuery = `CREATE TABLE ${table} (emr_entry_id text, code_system text, code_value text, text_value text, date_value date, emr_id text, effective_date date, emr_reference text)`;
-        insertQuery = `INSERT INTO ${table} (emr_entry_id, code_system, code_value, text_value, date_value, emr_id, effective_date, emr_reference) VALUES `;
+        createQuery = `CREATE TABLE ${table} (emr_entry_id text, code_system text, code_value text, text_value text, date_value date, boolean_value boolean, numeric_value numeric(18,6), emr_id text, effective_date date, emr_reference text)`;
+        insertQuery = `INSERT INTO ${table} (emr_entry_id, code_system, code_value, text_value, date_value, boolean_value, numeric_value, emr_id, effective_date, emr_reference) VALUES `;
         syncQuery = 'SELECT * FROM etl.sync_entry_attribute($1, $2, $3)';
         syncParams = [table, val.sourceTable, val.attributeId];
 

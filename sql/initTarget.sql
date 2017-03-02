@@ -67,8 +67,8 @@ $BODY$
 BEGIN
 
   EXECUTE format('
-    INSERT INTO universal.entry_attribute (entry_id, attribute_id, code_system, code_value, text_value, date_value, emr_id, emr_effective_date, hdc_effective_date, emr_reference)
-         SELECT ue.id, ''%s'', ea.code_system, ea.code_value, ea.text_value, ea.date_value, ea.emr_id, ea.effective_date, now(), ea.emr_reference
+    INSERT INTO universal.entry_attribute (entry_id, attribute_id, code_system, code_value, text_value, date_value, boolean_value, numeric_value, emr_id, emr_reference, emr_effective_date, hdc_effective_date)
+         SELECT ue.id, ''%s'', ea.code_system, ea.code_value, ea.text_value, ea.date_value, ea.boolean_value, ea.numeric_value, ea.emr_id, ea.emr_reference, ea.effective_date, now()
            FROM %s as ea
            JOIN universal.entry as ue
              ON ue.emr_id = ea.emr_entry_id
