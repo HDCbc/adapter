@@ -1,16 +1,4 @@
 
-TRUNCATE universal.clinic RESTART IDENTITY CASCADE;
-TRUNCATE universal.practitioner RESTART IDENTITY CASCADE;
-TRUNCATE universal.patient RESTART IDENTITY CASCADE;
-TRUNCATE universal.patient_practitioner RESTART IDENTITY CASCADE;
-TRUNCATE universal.entry RESTART IDENTITY CASCADE;
-TRUNCATE universal.entry_attribute RESTART IDENTITY CASCADE;
-TRUNCATE universal.state RESTART IDENTITY CASCADE;
-
-DROP SCHEMA IF EXISTS etl CASCADE;
-
-CREATE SCHEMA etl;
-
 CREATE OR REPLACE FUNCTION etl.sync_clinic(
     IN p_table_name text,
     OUT p_updated integer,
@@ -34,7 +22,6 @@ LANGUAGE plpgsql VOLATILE;
 
 CREATE OR REPLACE FUNCTION etl.sync_entry(
   IN p_table_name text,
-  IN p_source_table text,
   OUT p_updated integer,
   OUT p_inserted integer)
 RETURNS record AS
@@ -43,10 +30,10 @@ BEGIN
 
   EXECUTE format('
     INSERT INTO universal.entry (patient_id, emr_table, emr_id)
-         SELECT p.id, ''%s'', e.emr_id
+         SELECT p.id, e.source_table, e.emr_id
            FROM %s as e
            JOIN universal.patient as p
-             ON p.emr_id = e.emr_patient_id', p_source_table, p_table_name);
+             ON p.emr_id = e.emr_patient_id', p_table_name);
 
   GET DIAGNOSTICS p_inserted = ROW_COUNT;
 
@@ -68,15 +55,15 @@ BEGIN
 
   EXECUTE format('
     INSERT INTO universal.entry_attribute (entry_id, attribute_id, code_system, code_value, text_value, date_value, boolean_value, numeric_value, emr_id, emr_reference, emr_effective_date, hdc_effective_date)
-         SELECT ue.id, ''%s'', ea.code_system, ea.code_value, ea.text_value, ea.date_value, ea.boolean_value, ea.numeric_value, ea.emr_id, ea.emr_reference, ea.effective_date, now()
+         SELECT ue.id, ea.attribute_id, ea.code_system, ea.code_value, ea.text_value, ea.date_value, ea.boolean_value, ea.numeric_value, ea.emr_id, ea.emr_reference, ea.effective_date, now()
            FROM %s as ea
            JOIN universal.entry as ue
              ON ue.emr_id = ea.emr_entry_id
-            AND ue.emr_table = ''%s''', p_attribute_id, p_table_name, p_source_table);
+            AND ue.emr_table = ea.source_table', p_table_name);
 
   GET DIAGNOSTICS p_inserted = ROW_COUNT;
 
-  ANALYZE universal.entry_attribute;
+  -- ANALYZE universal.entry_attribute;
 
 END;
 $BODY$
@@ -97,11 +84,11 @@ BEGIN
       FROM %s as ees
       JOIN universal.entry as ue
         ON ue.emr_id = ees.emr_entry_id
-       AND ue.emr_table = ''%s''', p_table_name, p_source_table);
+       AND ue.emr_table = ees.source_table', p_table_name);
 
   GET DIAGNOSTICS p_inserted = ROW_COUNT;
 
-  ANALYZE universal.state;
+  -- ANALYZE universal.state;
 
 END;
 $BODY$

@@ -1,6 +1,7 @@
 const async = require('async');
 const fs = require('fs');
 const pg = require('pg');
+const copyFrom = require('pg-copy-streams').from;
 const winston = require('winston');
 
 /**
@@ -12,14 +13,14 @@ module.exports = (() => {
   let pool;
 
   const query = ({ q, p = [] }, callback) => {
-    winston.debug('target.query()', { q: q.substring(0, 100) + '...', p: p.length <= 5 ? p : p.length });
+    winston.debug('target.query()', q);
     pool.query(q, p, (err, res) => {
       if (err) {
         return callback({
           message: 'Unable to run target query',
           query: q,
           parameters: p,
-          error: err
+          error: err,
         });
       }
       return callback(err, res);
@@ -49,8 +50,50 @@ module.exports = (() => {
 
   // FIXME: Remove this and get runScriptFile to work with query instead of query2.
   const query2 = (q, callback) => {
+    winston.debug('in query2?', q);
     query({ q }, callback);
   };
+
+  const importFile = (table, filepath, callback) => {
+    winston.debug('db_postgres.importFile', { table, filepath });
+
+    const statement = `COPY ${table} FROM STDIN DELIMITER ',' CSV NULL AS '\\N';`;
+
+    winston.debug('Copy Statement', statement);
+
+    pool.connect((err, client, done) => {
+      if (err) {
+        return callback(err);
+      }
+
+      function allDone(a, b) {
+        done();
+        callback(a, b);
+      }
+
+      const stream = client.query(copyFrom(statement));
+      const fileStream = fs.createReadStream(filepath);
+      fileStream.on('error', allDone);
+      stream.on('error', allDone);
+      stream.on('end', allDone);
+      fileStream.pipe(stream);
+    });
+
+    // pool.query(statement, (err, res) => {
+    //   callback(err, res);
+    // });
+  };
+  // const importFile = (table, filepath, callback) => {
+  //   winston.debug('db_postgres.importFile', { table, filepath });
+  //
+  //   const statement = `\\COPY ${table} FROM '${filepath}' DELIMITER ',' CSV NULL AS '\\N';`;
+  //
+  //   winston.debug('Copy Statement', statement);
+  //
+  //   pool.query(statement, (err, res) => {
+  //     callback(err, res);
+  //   });
+  // };
 
   /**
    * Reads the content of a file and runs it as a query against the target database.
@@ -58,7 +101,7 @@ module.exports = (() => {
    * @param path A fully qualified path to the file. Must be in utf8 format.
    */
   const runScriptFile = (path, callback) => {
-    winston.verbose('target.runScriptFile');
+    winston.debug('target.runScriptFile');
     async.waterfall([
       async.constant(path, 'utf8'),
       fs.readFile,
@@ -71,5 +114,7 @@ module.exports = (() => {
     cleanup,
     query,
     runScriptFile,
+    query2,
+    importFile,
   };
 })();
