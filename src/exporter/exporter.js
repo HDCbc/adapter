@@ -199,7 +199,7 @@ module.exports = (() => {
       interval,
       errorFilter: (err) => {
         i += 1;
-        // TODO MYSQL Specific?
+
         const refused = _.includes(err.error, 'ECONNREFUSED');
         winston.info(`  Connection Refused ${i}/${times}`);
         winston.debug(err.error);
