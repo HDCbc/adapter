@@ -33,8 +33,6 @@ module.exports = (() => {
     const start = Date.now();
     const filename = `${taskName}.csv`;
 
-    // C:\\Users\\jonza\\Documents\\dumps\\2017_03_06_09_38_13\\\\entry-attribute-012.020.csv
-    // C:\\Users\\jonza\\Documents\\dumps\\2017_03_06_09_44_04\\clinic.csv
     const filepath = path.join(options.exportDir, filename);
     // TODO - windows?? const filepath = (exportDir + '\\' + exportFile).split('\\').join('\\\\');
 
@@ -93,9 +91,7 @@ module.exports = (() => {
     _.forEach(mapping, (val) => {
       let taskName;
       let dependsOn;
-      // TODO: Need to deal with assigning keys that are unique even if they have different
-      // source tables but the same attribute (eg measurements and measurementsDeleted)
-      // maybe use index
+
       if (val.target === 'Clinic') {
         taskName = 'clinic';
         dependsOn = 'start';
@@ -144,7 +140,6 @@ module.exports = (() => {
       return callback(err, res);
     });
   }
-
 
   function compress(callback) {
     if (!options.archivePath) {
