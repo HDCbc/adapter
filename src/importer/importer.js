@@ -110,7 +110,7 @@ module.exports = (() => {
       });
 
       winston.info(`  Populating Tasks Completed (${Object.keys(tasks).length} tasks from ${files.length} files)`);
-      callback(null);
+      return callback(null);
     });
   };
 
