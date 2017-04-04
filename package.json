@@ -4,8 +4,10 @@
   "description": "Vendor agnostic adapter to extract, transform and load data from an EMR to the HDC Universal Schema.",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
+    "doc": "jsdoc --debug -c jsdoc.json",
     "help": "node index.js --help",
+    "lint": "eslint **/*.js",
+    "start": "node index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -39,6 +41,7 @@
   "devDependencies": {
     "eslint": "^3.19.0",
     "eslint-config-airbnb-base": "^11.1.2",
-    "eslint-plugin-import": "^2.2.0"
+    "eslint-plugin-import": "^2.2.0",
+    "jsdoc": "^3.4.3"
   }
 }
