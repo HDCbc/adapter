@@ -1,7 +1,7 @@
 {
   "name": "adapter",
   "version": "1.0.0",
-  "description": "Vendor agnostic adapter to extract, transform and load data from EMR to HDC Universal Schema.",
+  "description": "Vendor agnostic adapter to extract, transform and load data from an EMR to the HDC Universal Schema.",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
