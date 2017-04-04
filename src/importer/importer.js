@@ -18,18 +18,14 @@ module.exports = (() => {
   };
 
   const uploadData = (table, filepath, callback) => {
-    db.importFile(table, filepath, (err, res) => {
-      return callback(err, res);
-    });
+    db.importFile(table, filepath, (err, res) => callback(err, res));
   };
 
-  const importTask = (table, filepath, createQuery, syncQuery, syncParams, autoResults, callback) => {
+  const importTask = (table, filepath, autoResults, callback) => {
     const start = Date.now();
 
     async.series({
-      // createTempTable: async.apply(createTempTable, table, createQuery),
       uploadData: async.apply(uploadData, table, filepath),
-      //syncData: async.apply(syncData, syncQuery, syncParams),
     }, (err, res) => {
       const elapsedSec = (Date.now() - start) / 1000;
       if (err) {
@@ -37,8 +33,8 @@ module.exports = (() => {
         return callback(err);
       }
 
+      // TODO - display row counts
       winston.verbose(`    CSV Uploaded ${path.basename(filepath)} (Some ### in ${elapsedSec} sec)`);
-      // winston.verbose(`    CSV Uploaded ${path.basename(filepath)} (${res.uploadData.rowCount} in ${elapsedSec} sec)`);
       return callback(err, res);
     });
   };
@@ -105,10 +101,11 @@ module.exports = (() => {
           syncQuery = 'SELECT * FROM etl.sync_entry($1)';
           syncParams = [table];
         } else {
-          // FIXME: Throw an error for no match
+          throw new Error(`Unrecognized filename format (${filename})`);
         }
 
-        tasks[filename] = [dependsOn, async.apply(importTask, table, filepath, createQuery, syncQuery, syncParams)];
+        tasks[filename] = [dependsOn,
+          async.apply(importTask, table, filepath, createQuery, syncQuery, syncParams)];
         winston.verbose(`    Task ${filename} depends on ${dependsOn}`);
       });
 
@@ -167,7 +164,7 @@ module.exports = (() => {
         winston.info(`  Decompress Completed (${elapsedSec} sec)`);
         return callback(null, files);
       });
-      //TODO .catch(err => { return callback(err); });
+      // TODO .catch(err => { return callback(err); });
   }
 
   function runScriptFile(taskName, relativePath, callback) {
@@ -193,7 +190,7 @@ module.exports = (() => {
       // Run an initialize script against the database.
       async.apply(runScriptFile, 'Recreate ETL Schema', './sql/createEtl.sql'),
       async.apply(runScriptFile, 'Truncate Universal Schema Data', './sql/truncateUniversal.sql'),
-      //async.apply(db.runScriptFile, path.join(__dirname, './sql/disableUniversalTriggers.sql')),
+      // async.apply(db.runScriptFile, path.join(__dirname, './sql/disableUniversalTriggers.sql')),
       // async.apply(db.runScriptFile, path.join(__dirname, './sql/vacuum.sql')),
       async.apply(uncompress),
       async.apply(populateTasks, options.importDir),
@@ -205,7 +202,7 @@ module.exports = (() => {
       async.apply(runScriptFile, 'Synchronize Entry', './sql/syncEntry.sql'),
       async.apply(runScriptFile, 'Synchronize Entry Attribute', './sql/syncEntryAttribute.sql'),
       async.apply(runScriptFile, 'Synchronize Entry State', './sql/syncEntryState.sql'),
-      //async.apply(db.runScriptFile, path.join(__dirname, './sql/enableUniversalTriggers.sql')),
+      // async.apply(db.runScriptFile, path.join(__dirname, './sql/enableUniversalTriggers.sql')),
       async.apply(runScriptFile, 'Drop ETL', './sql/dropEtl.sql'),
       async.apply(runScriptFile, 'Full Vacuum', './sql/vacuum.sql'),
       // async.apply(removeTemp),
@@ -225,10 +222,10 @@ module.exports = (() => {
     async.retry({
       times: 60,
       internal: 1000,
-      errorFilter: function(err) {
+      errorFilter(err) {
         winston.info(`  ${err}`);
         return true;
-      }
+      },
     }, testConnection, (err) => {
       if (err) {
         return callback(err);
@@ -247,7 +244,9 @@ module.exports = (() => {
     options = Object.assign({}, defaultOptions, userOptions);
 
     if (!options.importDir) {
-      options.importDir = path.join(path.dirname(options.importFile), path.basename(options.importFile, path.extname(options.importFile)));
+      options.importDir = path.join(
+        path.dirname(options.importFile),
+        path.basename(options.importFile, path.extname(options.importFile)));
     }
 
     // Pretty print the merged options.

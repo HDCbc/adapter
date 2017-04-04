@@ -22,6 +22,8 @@ module.exports = (() => {
    */
   const defaultOptions = {
     parallelTasks: 10,
+    connectionWaitAttempts: 60,
+    connectionWaitMs: 60000, // 30 seconds
   };
 
   let options;
@@ -32,9 +34,7 @@ module.exports = (() => {
   const exportTask = (taskName, sourceQuery, autoResults, callback) => {
     const start = Date.now();
     const filename = `${taskName}.csv`;
-
     const filepath = path.join(options.exportDir, filename);
-    // TODO - windows?? const filepath = (exportDir + '\\' + exportFile).split('\\').join('\\\\');
 
     db.exportData(sourceQuery, filepath, (err, res) => {
       if (err) {
@@ -199,7 +199,7 @@ module.exports = (() => {
       interval,
       errorFilter: (err) => {
         i += 1;
-        //TODO MYSQL Specific?
+        // TODO MYSQL Specific?
         const refused = _.includes(err.error, 'ECONNREFUSED');
         winston.info(`  Connection Refused ${i}/${times}`);
         winston.debug(err.error);
@@ -222,8 +222,6 @@ module.exports = (() => {
    *
    * This function must be run before calling exporter.run.
    */
-   // TODO - this whole function needs to be validated in terms of missing options,
-   // bad file loads etc
   function init(userOptions, callback) {
     winston.info('Init Started');
     const start = Date.now();
@@ -243,17 +241,15 @@ module.exports = (() => {
 
     tasks = populateTasks(mapping);
 
-    // const mode = 0777 & ~process.umask();
-
     return async.series([
       // Create a temporary export directory.
       async.apply(fs.mkdir, options.exportDir),
-      //TODO - hack
+      // TODO - hack
       async.apply(fs.chmod, options.exportDir, '777'),
       // Open the database connection.
       async.apply(db.init, dbConfig),
-      // Wait for a database connection (60 x 1 min)
-      async.apply(waitForConnection, 60, 60000),
+      // Wait for a database connection.
+      async.apply(waitForConnection, options.connectionWaitAttempts, options.connectionWaitMs),
     ], (err, res) => {
       if (err) { return callback(err); }
 
