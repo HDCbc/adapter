@@ -27,6 +27,7 @@ function getParameters() {
   // Note that this must be done before called .parse()
   // TODO - Flesh out the help documentation
   commander.on('--help', () => {
+    /* eslint-disable no-console */
     console.log('  Adapters are typically run in two different scenarios:');
     console.log('');
     console.log('  1. The source and target database are running on the same server.');
@@ -36,6 +37,7 @@ function getParameters() {
     console.log('  2. The source and target database are running on different servers without database connectivity between the two servers.');
     console.log('  In this case the adapter must be installed on each server. The adapter will first be run on the source server and will generate a compressed file.');
     console.log('');
+    /* eslint-enable no-console */
   });
 
   // Parse the command line arguments passed into the application.
