@@ -5,7 +5,7 @@ module.exports = {
     'import',
   ],
   rules: {
-    //Provide a warning for TODO and FIXME comments
+    // Provide a warning for TODO and FIXME comments
     'no-warning-comments': ['warn', {
       'terms': ['todo', 'fixme', 'xxx'],
       'location': 'start'
