@@ -105,7 +105,7 @@ module.exports = (() => {
         }
 
         tasks[filename] = [dependsOn,
-          async.apply(importTask, table, filepath, createQuery, syncQuery, syncParams)];
+          async.apply(importTask, table, filepath)];
         winston.verbose(`    Task ${filename} depends on ${dependsOn}`);
       });
 
