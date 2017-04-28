@@ -255,11 +255,9 @@ module.exports = (() => {
       winston.info(`    ${key} = ${options[key]}`);
     });
 
-    const dbConfig = require(options.dbConfig);
-
     return async.series([
       // Open the database connection.
-      async.apply(db.init, dbConfig),
+      async.apply(db.init, options.dbConfig),
       async.apply(waitForConnection),
 
     ], callback);

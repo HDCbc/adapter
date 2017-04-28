@@ -236,8 +236,7 @@ module.exports = (() => {
     });
 
     const mapping = require(options.mappingFile);
-    const dbConfig = require(options.dbConfig);
-    db = dbFactory.get(dbConfig.dialect);
+    db = dbFactory.get(options.dbConfig.dialect);
 
     tasks = populateTasks(mapping);
 
@@ -247,7 +246,7 @@ module.exports = (() => {
       // TODO - hack
       async.apply(fs.chmod, options.exportDir, '777'),
       // Open the database connection.
-      async.apply(db.init, dbConfig),
+      async.apply(db.init, options.dbConfig),
       // Wait for a database connection.
       async.apply(waitForConnection, options.connectionWaitAttempts, options.connectionWaitMs),
     ], (err, res) => {
