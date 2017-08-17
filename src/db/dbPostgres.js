@@ -57,7 +57,7 @@ module.exports = (() => {
   const importFile = (table, filepath, callback) => {
     winston.debug('db_postgres.importFile', { table, filepath });
 
-    const statement = `COPY ${table} FROM STDIN DELIMITER ',' CSV NULL AS '\\N' ENCODING 'LATIN1';`;
+    const statement = `COPY ${table} FROM STDIN DELIMITER ',' CSV NULL AS '\\N' ENCODING 'LATIN1' ESCAPE '\\';`;
 
     winston.debug('Copy Statement', statement);
 
