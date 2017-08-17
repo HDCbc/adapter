@@ -29,7 +29,7 @@ module.exports = (() => {
     }, (err, res) => {
       const elapsedSec = (Date.now() - start) / 1000;
       if (err) {
-        winston.error(`THERE IS AN ERROR FOR THE TASK ${table}`, err);
+        winston.error(`THERE IS AN ERROR FOR THE TASK ${table} ${filepath}`, err);
         return callback(err);
       }
 
