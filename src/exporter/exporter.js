@@ -101,6 +101,9 @@ module.exports = (() => {
       } else if (val.target === 'Patient') {
         taskName = 'patient';
         dependsOn = 'practitioner';
+      } else if (val.target === 'PatientState') {
+        taskName = 'patient-state';
+        dependsOn = 'patient';
       } else if (val.target === 'PatientPractitioner') {
         taskName = 'patient-practitioner';
         dependsOn = 'patient';

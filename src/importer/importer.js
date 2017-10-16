@@ -76,7 +76,13 @@ module.exports = (() => {
           dependsOn = 'patient.csv';
           syncQuery = 'SELECT * FROM etl.sync_patient_practitioner($1)';
           syncParams = [table];
-        } else if (filename.startsWith('patient')) { // Must be after patient-practitioner
+        } else if (filename.startsWith('patient-state')) { // Must be after patient-practitioner
+          table = 'etl.patient_state';
+          createQuery = 'CREATE TABLE IF NOT EXISTS etl.patient_state (emr_patient_id text, state text, effective_date timestamp with time zone, emr_reference text)';
+          dependsOn = 'patient.csv';
+          syncQuery = 'SELECT * FROM etl.sync_patient_state($1)';
+          syncParams = [table];
+        } else if (filename.startsWith('patient')) { // Must be after patient-practitioner and patient-state
           table = 'etl.patient';
           createQuery = 'CREATE TABLE IF NOT EXISTS etl.patient (emr_clinic_id text, emr_patient_id text, emr_reference text)';
           dependsOn = 'practitioner.csv';

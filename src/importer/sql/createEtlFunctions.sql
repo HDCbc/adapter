@@ -117,6 +117,29 @@ END;
 $BODY$
 LANGUAGE plpgsql VOLATILE;
 
+CREATE OR REPLACE FUNCTION etl.sync_patient_state(
+  IN p_table_name text,
+  OUT p_updated integer,
+  OUT p_inserted integer)
+RETURNS record AS
+$BODY$
+BEGIN
+
+  EXECUTE format('
+    INSERT INTO universal.state (record_type, record_id, state, effective_date, emr_reference)
+         SELECT ''patient'', ue.id, eps.state, eps.effective_date, eps.emr_reference
+           FROM %s as eps
+           JOIN universal.patient as up
+             ON up.emr_id = eps.emr_patient_id;', p_table_name);
+
+  GET DIAGNOSTICS p_inserted = ROW_COUNT;
+
+  ANALYZE universal.state;
+
+END;
+$BODY$
+LANGUAGE plpgsql VOLATILE;
+
 CREATE OR REPLACE FUNCTION etl.sync_patient_practitioner(
   IN p_table_name text,
   OUT p_updated integer,
