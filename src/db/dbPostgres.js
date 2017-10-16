@@ -54,6 +54,33 @@ module.exports = (() => {
     query({ q }, callback);
   };
 
+  const exportData = (selectQuery, exportPath, callback) => {
+    const escapedExportPath = exportPath.split('\\').join('\\\\');
+
+    const exportQuery = `
+      COPY (${selectQuery})
+      TO '${escapedExportPath}'
+      FORCE QUOTE *
+      DELIMITER ','
+      CSV NULL AS '\\N'
+      ENCODING 'LATIN1' ESCAPE '\\';
+    `;
+
+    winston.debug('db_postgres.exportData()', exportQuery);
+
+    pool.query(exportQuery, (err, res) => {
+      if (err) {
+        return callback({
+          message: 'Unable to export',
+          selectQuery,
+          exportQuery,
+          error: err,
+        });
+      }
+      return callback(err, { rows: res.affectedRows });
+    });
+  };
+
   const importFile = (table, filepath, callback) => {
     winston.debug('db_postgres.importFile', { table, filepath });
 
@@ -116,5 +143,6 @@ module.exports = (() => {
     runScriptFile,
     query2,
     importFile,
-  };
+  exportData,
+};
 })();
