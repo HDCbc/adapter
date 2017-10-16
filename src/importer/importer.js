@@ -203,6 +203,7 @@ module.exports = (() => {
       async.apply(runTasks),
       async.apply(runScriptFile, 'Synchronize Clinics', './sql/syncClinic.sql'),
       async.apply(runScriptFile, 'Synchronize Patients', './sql/syncPatient.sql'),
+      async.apply(runScriptFile, 'Synchronize Patient State', './sql/syncPatientState.sql'),
       async.apply(runScriptFile, 'Synchronize Practitioners', './sql/syncPractitioner.sql'),
       async.apply(runScriptFile, 'Synchronize Patient Practitioners', './sql/syncPatientPractitioner.sql'),
       async.apply(runScriptFile, 'Synchronize Entry', './sql/syncEntry.sql'),
